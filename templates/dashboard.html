@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Federated Cloud Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 Federated Cloud Dashboard</h1>
+            <p>Privacy-Preserving Resource Management via Federated Learning</p>
+            <div class="controls">
+                <button id="start-btn" onclick="startSimulation()">
+                    ▶ Start Simulation
+                </button>
+                <button id="clear-btn" class="export-btn" onclick="clearResults()" style="display:none;">
+                    🗑️ Clear Results
+                </button>
+                <button id="export-btn" class="export-btn" onclick="exportToCSV()" style="display:none;">
+                    📥 Export CSV
+                </button>
+            </div>
+        </header>
+
+        <!-- NEW: Interactive Configuration Section (v2.0) -->
+        <div class="section">
+            <div class="section-title">⚙️ Optimization Configuration (Real-Time Tuning)</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <!-- Alpha (Energy) -->
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <label for="alpha-slider" style="font-weight: 600; color: #1f2937;">
+                        α (Energy Weight): <span id="alpha-value">0.40</span>
+                    </label>
+                    <input type="range" id="alpha-slider" min="0" max="1" step="0.05" value="0.4" 
+                           onchange="updateAlpha(this.value)" style="width: 100%; margin-top: 8px;">
+                    <div style="font-size: 0.85rem; color: #6b7280; margin-top: 8px;">
+                        Balances energy efficiency (0-1)
+                    </div>
+                </div>
+
+                <!-- Beta (Imbalance) -->
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; border-left: 4px solid #764ba2;">
+                    <label for="beta-slider" style="font-weight: 600; color: #1f2937;">
+                        β (Imbalance Weight): <span id="beta-value">0.35</span>
+                    </label>
+                    <input type="range" id="beta-slider" min="0" max="1" step="0.05" value="0.35" 
+                           onchange="updateBeta(this.value)" style="width: 100%; margin-top: 8px;">
+                    <div style="font-size: 0.85rem; color: #6b7280; margin-top: 8px;">
+                        Balances resource utilization (0-1)
+                    </div>
+                </div>
+
+                <!-- Gamma (SLA) -->
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                    <label for="gamma-slider" style="font-weight: 600; color: #1f2937;">
+                        γ (SLA Weight): <span id="gamma-value">0.25</span>
+                    </label>
+                    <input type="range" id="gamma-slider" min="0" max="1" step="0.05" value="0.25" 
+                           onchange="updateGamma(this.value)" style="width: 100%; margin-top: 8px;">
+                    <div style="font-size: 0.85rem; color: #6b7280; margin-top: 8px;">
+                        Penalizes SLA violations (0-1)
+                    </div>
+                </div>
+
+                <!-- SLA CPU Threshold -->
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981;">
+                    <label for="sla-cpu-slider" style="font-weight: 600; color: #1f2937;">
+                        CPU SLA Threshold: <span id="sla-cpu-value">80</span>%
+                    </label>
+                    <input type="range" id="sla-cpu-slider" min="50" max="100" step="5" value="80" 
+                           onchange="updateSLACpu(this.value)" style="width: 100%; margin-top: 8px;">
+                    <div style="font-size: 0.85rem; color: #6b7280; margin-top: 8px;">
+                        CPU usage SLA threshold (50-100%)
+                    </div>
+                </div>
+
+                <!-- SLA Memory Threshold -->
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444;">
+                    <label for="sla-mem-slider" style="font-weight: 600; color: #1f2937;">
+                        Memory SLA Threshold: <span id="sla-mem-value">85</span>%
+                    </label>
+                    <input type="range" id="sla-mem-slider" min="50" max="100" step="5" value="85" 
+                           onchange="updateSLAMem(this.value)" style="width: 100%; margin-top: 8px;">
+                    <div style="font-size: 0.85rem; color: #6b7280; margin-top: 8px;">
+                        Memory usage SLA threshold (50-100%)
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 15px; padding: 12px; background: rgba(102, 126, 234, 0.1); border-radius: 8px; border-left: 4px solid #667eea;">
+                <strong>ℹ️ Tip:</strong> Adjust weights to test different optimization strategies. α+β+γ don't need to sum to 1.0.
+            </div>
+        </div>
+
+        <!-- NEW: Interactive Node Configuration Panel (v2.0 Playground) -->
+        <div class="section">
+            <div class="section-title">🖥️ Cloud Node Configuration Playground</div>
+            <p style="color: #6b7280; margin-bottom: 20px;">
+                Interactively configure heterogeneous cloud nodes and observe how different configurations affect resource management outcomes.
+            </p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <!-- Node Creation Form -->
+                <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 2px solid #e5e7eb;">
+                    <h3 style="margin-top: 0; color: #1f2937; margin-bottom: 15px;">➕ Add New Node</h3>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 5px;">Node Type *</label>
+                        <select id="node-type-select" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem;">
+                            <option value="EDGE_DEVICE">Edge Device</option>
+                            <option value="USER_DEVICE">User Device</option>
+                            <option value="COMPUTE_SERVER" selected>Compute Server</option>
+                            <option value="DATA_CENTER_NODE">Data Center Node</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 5px;">CPU Cores *</label>
+                        <input type="number" id="node-cpu-input" min="1" max="256" value="4" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem;">
+                    </div>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 5px;">Memory (GB) *</label>
+                        <input type="number" id="node-memory-input" min="0.5" max="1024" step="0.5" value="8" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem;">
+                    </div>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 5px;">Energy Cost Factor *</label>
+                        <input type="number" id="node-energy-input" min="0.1" max="10" step="0.1" value="1.0" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem;">
+                    </div>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 5px;">SLA Threshold (%) *</label>
+                        <input type="number" id="node-sla-input" min="0" max="100" value="80" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem;">
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 5px;">Region *</label>
+                        <select id="node-region-select" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem;">
+                            <option value="clean">Clean (Renewable)</option>
+                            <option value="mixed" selected>Mixed (Grid)</option>
+                            <option value="fossil">Fossil (Coal)</option>
+                        </select>
+                    </div>
+                    
+                    <button onclick="addNode()" style="width: 100%; padding: 10px; background: #667eea; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.95rem;">
+                        ➕ Add Node
+                    </button>
+                    <button onclick="clearAllNodes()" style="width: 100%; padding: 10px; background: #ef4444; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 0.95rem;">
+                        🗑️ Clear All
+                    </button>
+                </div>
+                
+                <!-- Configured Nodes Table -->
+                <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 2px solid #e5e7eb; overflow-x: auto;">
+                    <h3 style="margin-top: 0; color: #1f2937; margin-bottom: 15px;">📋 Configured Nodes (<span id="node-count">0</span>)</h3>
+                    <div style="overflow-x: auto;">
+                        <table id="nodes-table" style="width: 100%; font-size: 0.85rem; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #d1d5db;">
+                                    <th style="text-align: left; padding: 8px; color: #374151; font-weight: 600;">ID</th>
+                                    <th style="text-align: left; padding: 8px; color: #374151; font-weight: 600;">Type</th>
+                                    <th style="text-align: center; padding: 8px; color: #374151; font-weight: 600;">CPU</th>
+                                    <th style="text-align: center; padding: 8px; color: #374151; font-weight: 600;">Mem</th>
+                                    <th style="text-align: center; padding: 8px; color: #374151; font-weight: 600;">Energy</th>
+                                    <th style="text-align: center; padding: 8px; color: #374151; font-weight: 600;">SLA</th>
+                                    <th style="text-align: center; padding: 8px; color: #374151; font-weight: 600;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nodes-tbody">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                        <div id="no-nodes-message" style="text-align: center; color: #9ca3af; padding: 20px;">
+                            No nodes configured yet. Add one to get started.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Simulation Control -->
+            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; border: 2px solid #bbf7d0; margin-bottom: 20px;">
+                <h3 style="margin-top: 0; color: #1f2937; margin-bottom: 15px;">🚀 Run Custom Simulation</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 5px;">Strategy</label>
+                        <select id="sim-strategy-select" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem;">
+                            <option value="Static Allocation">Static Allocation</option>
+                            <option value="Centralized ML">Centralized ML</option>
+                            <option value="Federated Learning" selected>Federated Learning</option>
+                            <option value="Energy-Aware Heuristic">Energy-Aware Heuristic</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 5px;">Rounds</label>
+                        <input type="number" id="sim-rounds-input" min="1" max="20" value="5" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem;">
+                    </div>
+                </div>
+                
+                <button id="run-custom-sim-btn" onclick="runCustomSimulation()" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 1rem;">
+                    ▶️ Run Simulation with Current Nodes
+                </button>
+                <div id="sim-status" style="margin-top: 15px; padding: 12px; background: white; border-radius: 6px; color: #6b7280; display: none;">
+                    <span id="sim-status-text">Initializing...</span>
+                </div>
+            </div>
+            
+            <!-- Simulation Results -->
+            <div id="simulation-results-container" style="display: none;">
+                <h3 style="color: #1f2937; margin-top: 20px; margin-bottom: 15px;">📊 Simulation Results</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <div id="results-summary" style="background: #f3f4f6; padding: 15px; border-radius: 8px;">
+                        <!-- Results populated by JS -->
+                    </div>
+                    <div id="results-details" style="background: #f3f4f6; padding: 15px; border-radius: 8px;">
+                        <!-- Details populated by JS -->
+                    </div>
+                </div>
+                
+                <!-- Visualizations -->
+                <h3 style="color: #1f2937; margin-top: 20px; margin-bottom: 15px;">📈 Visualizations</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+                    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
+                        <img id="energy-plot-img" style="width: 100%; height: auto; display: none;" alt="Energy Plot">
+                        <div id="energy-plot-loading" style="padding: 20px; text-align: center; color: #9ca3af;">Loading energy plot...</div>
+                    </div>
+                    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
+                        <img id="sla-plot-img" style="width: 100%; height: auto; display: none;" alt="SLA Plot">
+                        <div id="sla-plot-loading" style="padding: 20px; text-align: center; color: #9ca3af;">Loading SLA plot...</div>
+                    </div>
+                    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
+                        <img id="fairness-plot-img" style="width: 100%; height: auto; display: none;" alt="Fairness Plot">
+                        <div id="fairness-plot-loading" style="padding: 20px; text-align: center; color: #9ca3af;">Loading fairness plot...</div>
+                    </div>
+                    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
+                        <img id="dashboard-plot-img" style="width: 100%; height: auto; display: none;" alt="Dashboard Plot">
+                        <div id="dashboard-plot-loading" style="padding: 20px; text-align: center; color: #9ca3af;">Loading dashboard plot...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📊 System Status</div>
+            <div class="dashboard">
+                <!-- Status Card -->
+                <div class="card">
+                    <div class="card-icon">📈</div>
+                    <div class="metric-label">Simulation Status</div>
+                    <div class="metric-value" id="status">Ready</div>
+                    <div class="metric-subtext" id="status-detail">Click "Start Simulation" to begin</div>
+                    <div style="margin-top: 12px;">
+                        <span class="status-indicator ready" id="status-indicator"></span>
+                        <span id="status-text">Idle</span>
+                    </div>
+                </div>
+
+                <!-- Rounds Completed -->
+                <div class="card">
+                    <div class="card-icon">🔄</div>
+                    <div class="metric-label">Federated Rounds</div>
+                    <div class="metric-value" id="rounds">0</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">Clients</div>
+                            <div class="stat-value" id="num-clients">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Total Time</div>
+                            <div class="stat-value" id="total-time">0s</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Execution Time -->
+                <div class="card">
+                    <div class="card-icon">⏱️</div>
+                    <div class="metric-label">Avg Round Duration</div>
+                    <div class="metric-value" id="avg-duration">--</div>
+                    <div class="metric-subtext">seconds per round</div>
+                </div>
+
+                <!-- System Load -->
+                <div class="card">
+                    <div class="card-icon">💻</div>
+                    <div class="metric-label">Avg CPU Usage</div>
+                    <div class="metric-value" id="cpu-usage">--</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="cpu-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Memory Usage -->
+                <div class="card">
+                    <div class="card-icon">🧠</div>
+                    <div class="metric-label">Avg Memory Usage</div>
+                    <div class="metric-value" id="memory-usage">--</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="memory-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Disk Usage -->
+                <div class="card">
+                    <div class="card-icon">💾</div>
+                    <div class="metric-label">Avg Disk Usage</div>
+                    <div class="metric-value" id="disk-usage">--</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="disk-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📉 Loss Metrics</div>
+            <div class="dashboard">
+                <!-- Final Average Loss -->
+                <div class="card">
+                    <div class="card-icon">🎯</div>
+                    <div class="metric-label">Final Avg Loss</div>
+                    <div class="metric-value" id="avg-loss">--</div>
+                    <div class="metric-subtext">Lower is better</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">Trend</div>
+                            <div class="stat-value" id="loss-trend">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Min Loss -->
+                <div class="card">
+                    <div class="card-icon">✅</div>
+                    <div class="metric-label">Min Loss</div>
+                    <div class="metric-value" id="min-loss">--</div>
+                    <div class="metric-subtext">Best performance</div>
+                </div>
+
+                <!-- Max Loss -->
+                <div class="card">
+                    <div class="card-icon">⚠️</div>
+                    <div class="metric-label">Max Loss</div>
+                    <div class="metric-value" id="max-loss">--</div>
+                    <div class="metric-subtext">Worst performance</div>
+                </div>
+
+                <!-- Std Deviation -->
+                <div class="card">
+                    <div class="card-icon">📐</div>
+                    <div class="metric-label">Loss Std Dev</div>
+                    <div class="metric-value" id="std-loss">--</div>
+                    <div class="metric-subtext">Variance in training</div>
+                </div>
+
+                <!-- Loss Reduction -->
+                <div class="card">
+                    <div class="card-icon">📊</div>
+                    <div class="metric-label">Loss Reduction</div>
+                    <div class="metric-value" id="loss-reduction">--</div>
+                    <div class="metric-subtext">From round 1 to final</div>
+                </div>
+
+                <!-- Convergence -->
+                <div class="card">
+                    <div class="card-icon">🔀</div>
+                    <div class="metric-label">Convergence Status</div>
+                    <div class="metric-value" id="convergence">--</div>
+                    <div class="metric-subtext">Training quality</div>
+                </div>
+            </div>
+
+            <!-- Loss Chart -->
+            <div class="chart-container">
+                <h3 style="margin-bottom: 10px; color: #1f2937;">Loss Progression Over Rounds</h3>
+                <div class="chart-wrapper">
+                    <canvas id="lossChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: System-Level Metrics (v2.0) -->
+        <div class="section">
+            <div class="section-title">⚡ System Optimization Metrics</div>
+            <div class="dashboard">
+                <!-- Energy Score -->
+                <div class="card">
+                    <div class="card-icon">⚡</div>
+                    <div class="metric-label">Avg Energy Score</div>
+                    <div class="metric-value" id="energy-score">--</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="energy-bar" style="width: 0%; background: linear-gradient(90deg, #f59e0b, #ef4444);"></div>
+                    </div>
+                    <div class="metric-subtext">Lower is better</div>
+                </div>
+
+                <!-- SLA Violations -->
+                <div class="card">
+                    <div class="card-icon">📋</div>
+                    <div class="metric-label">SLA Violations</div>
+                    <div class="metric-value" id="sla-violations">--</div>
+                    <div class="metric-subtext">Total across all rounds</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">CPU</div>
+                            <div class="stat-value" id="sla-cpu-viol">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Memory</div>
+                            <div class="stat-value" id="sla-mem-viol">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resource Efficiency -->
+                <div class="card">
+                    <div class="card-icon">♻️</div>
+                    <div class="metric-label">Resource Efficiency</div>
+                    <div class="metric-value" id="efficiency-score">--</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="efficiency-bar" style="width: 0%; background: linear-gradient(90deg, #10b981, #059669);"></div>
+                    </div>
+                    <div class="metric-subtext">Higher is better</div>
+                </div>
+
+                <!-- Training Stability -->
+                <div class="card">
+                    <div class="card-icon">📈</div>
+                    <div class="metric-label">Training Stability</div>
+                    <div class="metric-value" id="stability-score">--</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="stability-bar" style="width: 0%; background: linear-gradient(90deg, #667eea, #764ba2);"></div>
+                    </div>
+                    <div class="metric-subtext">Smoother is better</div>
+                </div>
+
+                <!-- Optimization Score Trend -->
+                <div class="card">
+                    <div class="card-icon">🎯</div>
+                    <div class="metric-label">Avg Optimization Score</div>
+                    <div class="metric-value" id="optimization-score">--</div>
+                    <div class="metric-subtext">Target to minimize</div>
+                </div>
+
+                <!-- Violations Rate -->
+                <div class="card">
+                    <div class="card-icon">⚠️</div>
+                    <div class="metric-label">Violation Rate</div>
+                    <div class="metric-value" id="violation-rate">--</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="violation-bar" style="width: 0%; background: linear-gradient(90deg, #ef4444, #dc2626);"></div>
+                    </div>
+                    <div class="metric-subtext">Lower is better</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📋 Round-by-Round Details</div>
+            <div style="overflow-x: auto;">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Round</th>
+                            <th>Avg Loss</th>
+                            <th>CPU (%)</th>
+                            <th>Memory (%)</th>
+                            <th>Disk (%)</th>
+                            <th>Duration (s)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rounds-table">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #999; padding: 30px;">
+                                No simulation results yet. Click "Start Simulation" to begin.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📈 Detailed Analytics</div>
+            
+            <!-- Collapsible Resource Metrics -->
+            <div class="collapsible" onclick="toggleCollapsible(this)">
+                💾 Resource Usage Metrics
+                <span style="font-size: 1.2rem;">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <div class="content-inner">
+                    <div class="chart-container">
+                        <h4 style="margin-bottom: 10px;">CPU vs Memory vs Disk</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="resourceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collapsible Client Performance -->
+            <div class="collapsible" onclick="toggleCollapsible(this)">
+                👥 Client Performance Distribution
+                <span style="font-size: 1.2rem;">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <div class="content-inner">
+                    <div class="chart-container">
+                        <h4 style="margin-bottom: 10px;">Loss Distribution Across Clients (Final Round)</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="clientChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collapsible Raw Data -->
+            <div class="collapsible" onclick="toggleCollapsible(this)">
+                🔬 Raw Simulation Data (JSON)
+                <span style="font-size: 1.2rem;">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <div class="content-inner">
+                    <pre id="raw-data" style="background: var(--light); padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 0.85rem;">
+No data available yet.
+                    </pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">ℹ️ About Federated Learning</div>
+            <div style="background: rgba(102, 126, 234, 0.05); padding: 20px; border-radius: 8px; border-left: 4px solid var(--primary);">
+                <p style="line-height: 1.6; color: #374151;">
+                    <strong>Federated Learning</strong> is a distributed machine learning approach that trains models 
+                    across multiple decentralized devices or clients while keeping data local. Instead of centralizing data, 
+                    each client trains on its own data and only shares model updates with a central server. The server then 
+                    aggregates these updates using algorithms like <strong>FedAvg (Federated Averaging)</strong> to create 
+                    a global model.
+                </p>
+                <p style="line-height: 1.6; color: #374151; margin-top: 10px;">
+                    <strong>Key Benefits:</strong> 🔒 Privacy preservation • 🌍 Distributed training • ⚡ Reduced bandwidth • 
+                    🎯 Better generalization with heterogeneous data
+                </p>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2026 Federated Cloud Dashboard | Research-Grade Federated Learning System</p>
+            <p style="margin-top: 8px; font-size: 0.85rem;">CPU-Only • Localhost Demo • Reproducible • Exam-Ready</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        let simulationData = null;
+        let lossChart = null;
+        let resourceChart = null;
+        let clientChart = null;
+        let isRunning = false;
+
+        // Optimization parameter state
+        let optimizationParams = {
+            alpha: 0.4,
+            beta: 0.35,
+            gamma: 0.25,
+            sla_cpu: 80,
+            sla_memory: 85
+        };
+
+        // Update parameter display and state
+        function updateAlpha(value) {
+            optimizationParams.alpha = parseFloat(value);
+            document.getElementById('alpha-value').textContent = value;
+            document.getElementById('alpha-display').textContent = (parseFloat(value) * 100).toFixed(1) + '%';
+        }
+
+        function updateBeta(value) {
+            optimizationParams.beta = parseFloat(value);
+            document.getElementById('beta-value').textContent = value;
+            document.getElementById('beta-display').textContent = (parseFloat(value) * 100).toFixed(1) + '%';
+        }
+
+        function updateGamma(value) {
+            optimizationParams.gamma = parseFloat(value);
+            document.getElementById('gamma-value').textContent = value;
+            document.getElementById('gamma-display').textContent = (parseFloat(value) * 100).toFixed(1) + '%';
+        }
+
+        function updateSLACpu(value) {
+            optimizationParams.sla_cpu = parseFloat(value);
+            document.getElementById('sla-cpu-value').textContent = value + '%';
+            document.getElementById('sla-cpu-display').textContent = value + '%';
+        }
+
+        function updateSLAMemory(value) {
+            optimizationParams.sla_memory = parseFloat(value);
+            document.getElementById('sla-memory-value').textContent = value + '%';
+            document.getElementById('sla-memory-display').textContent = value + '%';
+        }
+
+        async function startSimulation() {
+            if (isRunning) {
+                alert('Simulation already running!');
+                return;
+            }
+
+            isRunning = true;
+            const btn = document.getElementById('start-btn');
+            btn.disabled = true;
+            btn.textContent = '⏱ Running...';
+
+            updateStatus('Running simulation...', 'Federated learning in progress with α=' + optimizationParams.alpha.toFixed(2) + ', β=' + optimizationParams.beta.toFixed(2) + ', γ=' + optimizationParams.gamma.toFixed(2), 'running');
+
+            try {
+                const response = await fetch('/api/simulation/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        alpha: optimizationParams.alpha,
+                        beta: optimizationParams.beta,
+                        gamma: optimizationParams.gamma,
+                        sla_cpu: optimizationParams.sla_cpu,
+                        sla_memory: optimizationParams.sla_memory
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    simulationData = data.data;
+                    displayResults(data.data);
+                    updateStatus('Complete', 'Simulation finished successfully', 'success');
+                    document.getElementById('clear-btn').style.display = 'inline-block';
+                    document.getElementById('export-btn').style.display = 'inline-block';
+                } else {
+                    updateStatus('Error', data.message, 'error');
+                }
+            } catch (error) {
+                updateStatus('Error', error.message, 'error');
+                console.error('Error:', error);
+            } finally {
+                isRunning = false;
+                btn.disabled = false;
+                btn.textContent = '▶ Start Simulation';
+            }
+        }
+
+        function updateStatus(status, detail, type) {
+            document.getElementById('status').textContent = status;
+            document.getElementById('status-detail').textContent = detail;
+            const indicator = document.getElementById('status-indicator');
+            indicator.className = `status-indicator ${type === 'running' ? 'running' : type === 'success' ? 'ready' : 'error'}`;
+            document.getElementById('status-text').textContent = status;
+        }
+
+        function formatNumber(num) {
+            if (num === null || num === undefined) return '--';
+            if (Math.abs(num) >= 1e15) {
+                return (num / 1e15).toFixed(2) + 'e15';
+            }
+            if (Math.abs(num) >= 1e10) {
+                return (num / 1e10).toFixed(2) + 'e10';
+            }
+            if (Math.abs(num) >= 1e6) {
+                return (num / 1e6).toFixed(2) + 'M';
+            }
+            if (Math.abs(num) >= 1e3) {
+                return (num / 1e3).toFixed(2) + 'K';
+            }
+            return num.toFixed(2);
+        }
+
+        function displayResults(data) {
+            const metrics = data.final_metrics;
+            const rounds = data.round_results;
+
+            // Basic metrics
+            document.getElementById('rounds').textContent = data.num_rounds;
+            document.getElementById('num-clients').textContent = data.num_clients;
+            
+            // Loss metrics
+            document.getElementById('avg-loss').textContent = formatNumber(metrics.avg_loss);
+            document.getElementById('min-loss').textContent = formatNumber(metrics.min_loss);
+            document.getElementById('max-loss').textContent = formatNumber(metrics.max_loss);
+            document.getElementById('std-loss').textContent = formatNumber(metrics.std_loss);
+
+            // Loss reduction
+            const firstRoundLoss = rounds[0].avg_client_loss;
+            const lastRoundLoss = rounds[rounds.length - 1].avg_client_loss;
+            const isConverging = firstRoundLoss > lastRoundLoss;
+            document.getElementById('loss-reduction').textContent = isConverging ? '↘️ Improving' : '↗️ Diverging';
+            document.getElementById('convergence').textContent = isConverging ? '✅ Good' : '⚠️ Poor';
+            document.getElementById('loss-trend').textContent = isConverging ? '↘️ Down' : '↗️ Up';
+
+            // Resource metrics
+            let totalDuration = 0;
+            let avgCpu = 0, avgMemory = 0, avgDisk = 0;
+            rounds.forEach(r => {
+                avgCpu += r.cpu_usage;
+                avgMemory += r.memory_usage;
+                avgDisk += r.disk_usage;
+                totalDuration += r.duration_seconds;
+            });
+            avgCpu /= rounds.length;
+            avgMemory /= rounds.length;
+            avgDisk /= rounds.length;
+
+            document.getElementById('cpu-usage').textContent = avgCpu.toFixed(1) + '%';
+            document.getElementById('memory-usage').textContent = avgMemory.toFixed(1) + '%';
+            document.getElementById('disk-usage').textContent = avgDisk.toFixed(1) + '%';
+            document.getElementById('avg-duration').textContent = (totalDuration / rounds.length).toFixed(2);
+            document.getElementById('total-time').textContent = totalDuration.toFixed(2) + 's';
+
+            // Progress bars
+            document.getElementById('cpu-bar').style.width = avgCpu + '%';
+            document.getElementById('memory-bar').style.width = avgMemory + '%';
+            document.getElementById('disk-bar').style.width = avgDisk + '%';
+
+            // System optimization metrics (if available from new v2.0 backend)
+            if (data.system_metrics) {
+                const sysMetrics = data.system_metrics;
+                document.getElementById('energy-score').textContent = sysMetrics.energy_score ? (sysMetrics.energy_score * 100).toFixed(1) + '%' : '--';
+                document.getElementById('sla-violations').textContent = sysMetrics.sla_violations !== undefined ? sysMetrics.sla_violations : '--';
+                document.getElementById('efficiency-score').textContent = sysMetrics.efficiency_score ? (sysMetrics.efficiency_score * 100).toFixed(1) + '%' : '--';
+                document.getElementById('stability-score').textContent = sysMetrics.stability_score ? (sysMetrics.stability_score * 100).toFixed(1) + '%' : '--';
+                document.getElementById('optimization-score').textContent = sysMetrics.avg_optimization_score ? (sysMetrics.avg_optimization_score * 100).toFixed(1) + '%' : '--';
+                document.getElementById('violation-rate').textContent = sysMetrics.violation_rate ? (sysMetrics.violation_rate * 100).toFixed(1) + '%' : '--';
+            } else {
+                // Default display if system metrics not available yet
+                document.getElementById('energy-score').textContent = '--';
+                document.getElementById('sla-violations').textContent = '--';
+                document.getElementById('efficiency-score').textContent = '--';
+                document.getElementById('stability-score').textContent = '--';
+                document.getElementById('optimization-score').textContent = '--';
+                document.getElementById('violation-rate').textContent = '--';
+            }
+
+            // Populate table
+            const tbody = document.getElementById('rounds-table');
+            tbody.innerHTML = rounds.map(r => `
+                <tr>
+                    <td><strong>Round ${r.round}</strong></td>
+                    <td>${formatNumber(r.avg_client_loss)}</td>
+                    <td>${r.cpu_usage.toFixed(1)}</td>
+                    <td>${r.memory_usage.toFixed(1)}</td>
+                    <td>${r.disk_usage.toFixed(1)}</td>
+                    <td>${r.duration_seconds.toFixed(3)}</td>
+                    <td><span class="badge success">✓ Complete</span></td>
+                </tr>
+            `).join('');
+
+            // Draw charts
+            drawLossChart(rounds);
+            drawResourceChart(rounds);
+            drawClientChart(data);
+
+            // Raw data
+            document.getElementById('raw-data').textContent = JSON.stringify(data, null, 2);
+        }
+
+        function drawLossChart(rounds) {
+            const ctx = document.getElementById('lossChart');
+            if (lossChart) lossChart.destroy();
+
+            lossChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: rounds.map(r => `Round ${r.round}`),
+                    datasets: [{
+                        label: 'Average Loss',
+                        data: rounds.map(r => r.avg_client_loss),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.05)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            type: 'logarithmic',
+                            ticks: { callback: v => formatNumber(v) }
+                        }
+                    }
+                }
+            });
+        }
+
+        function drawResourceChart(rounds) {
+            const ctx = document.getElementById('resourceChart');
+            if (resourceChart) resourceChart.destroy();
+
+            resourceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: rounds.map(r => `Round ${r.round}`),
+                    datasets: [
+                        {
+                            label: 'CPU %',
+                            data: rounds.map(r => r.cpu_usage),
+                            backgroundColor: '#667eea'
+                        },
+                        {
+                            label: 'Memory %',
+                            data: rounds.map(r => r.memory_usage),
+                            backgroundColor: '#764ba2'
+                        },
+                        {
+                            label: 'Disk %',
+                            data: rounds.map(r => r.disk_usage),
+                            backgroundColor: '#f59e0b'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, max: 100 } }
+                }
+            });
+        }
+
+        function drawClientChart(data) {
+            const lastRound = data.round_results[data.round_results.length - 1];
+            const ctx = document.getElementById('clientChart');
+            if (clientChart) clientChart.destroy();
+
+            clientChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: lastRound.client_losses.map((_, i) => `Client ${i + 1}`),
+                    datasets: [{
+                        label: 'Loss',
+                        data: lastRound.client_losses,
+                        backgroundColor: ['#667eea', '#764ba2', '#f59e0b'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { type: 'logarithmic', ticks: { callback: v => formatNumber(v) } } }
+                }
+            });
+        }
+
+        function toggleCollapsible(element) {
+            element.classList.toggle('active');
+        }
+
+        function clearResults() {
+            simulationData = null;
+            document.getElementById('status').textContent = 'Ready';
+            document.getElementById('status-detail').textContent = 'Click "Start Simulation" to begin';
+            document.getElementById('rounds').textContent = '0';
+            document.getElementById('num-clients').textContent = '0';
+            document.getElementById('avg-loss').textContent = '--';
+            document.getElementById('min-loss').textContent = '--';
+            document.getElementById('max-loss').textContent = '--';
+            document.getElementById('std-loss').textContent = '--';
+            
+            // Clear system optimization metrics
+            document.getElementById('energy-score').textContent = '--';
+            document.getElementById('sla-violations').textContent = '--';
+            document.getElementById('efficiency-score').textContent = '--';
+            document.getElementById('stability-score').textContent = '--';
+            document.getElementById('optimization-score').textContent = '--';
+            document.getElementById('violation-rate').textContent = '--';
+            
+            document.getElementById('rounds-table').innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999; padding: 30px;">No results</td></tr>';
+            document.getElementById('raw-data').textContent = 'No data available yet.';
+            document.getElementById('clear-btn').style.display = 'none';
+            document.getElementById('export-btn').style.display = 'none';
+            if (lossChart) lossChart.destroy();
+            if (resourceChart) resourceChart.destroy();
+            if (clientChart) clientChart.destroy();
+        }
+
+        function exportToCSV() {
+            if (!simulationData) return;
+            
+            const rounds = simulationData.round_results;
+            let csv = 'Round,Avg_Loss,CPU_%,Memory_%,Disk_%,Duration_s\n';
+            rounds.forEach(r => {
+                csv += `${r.round},${r.avg_client_loss},${r.cpu_usage},${r.memory_usage},${r.disk_usage},${r.duration_seconds}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `federated-simulation-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+        // ============================================================================
+        // INTERACTIVE NODE CONFIGURATION PLAYGROUND (v2.0)
+        // ============================================================================
+        
+        // Load and display configured nodes
+        async function loadNodes() {
+            try {
+                const response = await fetch('/api/nodes');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const nodes = data.data || [];
+                    displayNodes(nodes);
+                }
+            } catch (error) {
+                console.error('Error loading nodes:', error);
+            }
+        }
+        
+        // Display nodes in table
+        function displayNodes(nodes) {
+            const tbody = document.getElementById('nodes-tbody');
+            const nodesMessage = document.getElementById('no-nodes-message');
+            const nodeCount = document.getElementById('node-count');
+            
+            nodeCount.textContent = nodes.length;
+            
+            if (nodes.length === 0) {
+                tbody.innerHTML = '';
+                nodesMessage.style.display = 'block';
+                return;
+            }
+            
+            nodesMessage.style.display = 'none';
+            tbody.innerHTML = nodes.map(node => `
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 8px; color: #374151; font-family: monospace; font-size: 0.8rem;">${node.node_id}</td>
+                    <td style="padding: 8px; color: #374151;">${node.node_type.replace(/_/g, ' ')}</td>
+                    <td style="padding: 8px; color: #374151; text-align: center;">${node.cpu_cores}</td>
+                    <td style="padding: 8px; color: #374151; text-align: center;">${node.memory_gb}GB</td>
+                    <td style="padding: 8px; color: #374151; text-align: center;">${node.energy_cost_factor.toFixed(1)}x</td>
+                    <td style="padding: 8px; color: #374151; text-align: center;">${node.sla_threshold}%</td>
+                    <td style="padding: 8px; text-align: center;">
+                        <button onclick="deleteNode('${node.node_id}')" style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                            ✕ Remove
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Add node via API
+        async function addNode() {
+            try {
+                const nodeType = document.getElementById('node-type-select').value;
+                const cpuCores = parseInt(document.getElementById('node-cpu-input').value);
+                const memoryGb = parseFloat(document.getElementById('node-memory-input').value);
+                const energyCost = parseFloat(document.getElementById('node-energy-input').value);
+                const slaThreshold = parseFloat(document.getElementById('node-sla-input').value);
+                const region = document.getElementById('node-region-select').value;
+                
+                // Validation
+                if (cpuCores <= 0 || memoryGb <= 0 || energyCost <= 0 || slaThreshold < 0 || slaThreshold > 100) {
+                    alert('Please enter valid values for all fields');
+                    return;
+                }
+                
+                const response = await fetch('/api/nodes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        node_type: nodeType,
+                        cpu_cores: cpuCores,
+                        memory_gb: memoryGb,
+                        energy_cost_factor: energyCost,
+                        sla_threshold: slaThreshold,
+                        region: region
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // Reset form
+                    document.getElementById('node-cpu-input').value = '4';
+                    document.getElementById('node-memory-input').value = '8';
+                    document.getElementById('node-energy-input').value = '1.0';
+                    document.getElementById('node-sla-input').value = '80';
+                    
+                    // Reload nodes
+                    loadNodes();
+                    
+                    alert('✓ Node added successfully');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error adding node:', error);
+                alert('Error adding node: ' + error.message);
+            }
+        }
+        
+        // Delete node via API
+        async function deleteNode(nodeId) {
+            if (!confirm('Delete node ' + nodeId + '?')) return;
+            
+            try {
+                const response = await fetch(`/api/nodes/${nodeId}`, { method: 'DELETE' });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    loadNodes();
+                    alert('✓ Node removed');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error deleting node:', error);
+                alert('Error deleting node: ' + error.message);
+            }
+        }
+        
+        // Clear all nodes
+        async function clearAllNodes() {
+            if (!confirm('Delete all nodes?')) return;
+            
+            try {
+                const response = await fetch('/api/nodes/clear', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    loadNodes();
+                    alert('✓ All nodes cleared');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error clearing nodes:', error);
+                alert('Error clearing nodes: ' + error.message);
+            }
+        }
+        
+        // Run custom simulation with configured nodes
+        async function runCustomSimulation() {
+            try {
+                const strategy = document.getElementById('sim-strategy-select').value;
+                const rounds = parseInt(document.getElementById('sim-rounds-input').value);
+                
+                // Disable button
+                const btn = document.getElementById('run-custom-sim-btn');
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+                
+                // Show status
+                const statusDiv = document.getElementById('sim-status');
+                statusDiv.style.display = 'block';
+                document.getElementById('sim-status-text').textContent = '⏳ Running simulation...';
+                
+                // Call API
+                const response = await fetch('/api/simulations/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        strategy: strategy,
+                        rounds: rounds,
+                        alpha: parseFloat(document.getElementById('alpha-slider').value),
+                        beta: parseFloat(document.getElementById('beta-slider').value),
+                        gamma: parseFloat(document.getElementById('gamma-slider').value)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displaySimulationResults(data);
+                    document.getElementById('sim-status-text').textContent = '✓ Simulation completed';
+                } else {
+                    document.getElementById('sim-status-text').textContent = '✗ Error: ' + data.message;
+                    alert('Simulation error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error running simulation:', error);
+                document.getElementById('sim-status-text').textContent = '✗ Error: ' + error.message;
+                alert('Error: ' + error.message);
+            } finally {
+                // Re-enable button
+                const btn = document.getElementById('run-custom-sim-btn');
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        }
+        
+        // Display simulation results
+        function displaySimulationResults(data) {
+            const container = document.getElementById('simulation-results-container');
+            const summaryDiv = document.getElementById('results-summary');
+            const detailsDiv = document.getElementById('results-details');
+            
+            container.style.display = 'block';
+            
+            // Summary info
+            const sim = data.simulation;
+            summaryDiv.innerHTML = `
+                <h4 style="margin-top: 0; color: #1f2937;">Simulation Parameters</h4>
+                <p><strong>Strategy:</strong> ${sim.strategy}</p>
+                <p><strong>Nodes:</strong> ${sim.num_nodes}</p>
+                <p><strong>Rounds:</strong> ${sim.num_rounds}</p>
+                <p><strong>Weights:</strong> α=${sim.parameters.alpha}, β=${sim.parameters.beta}, γ=${sim.parameters.gamma}</p>
+            `;
+            
+            // Results details
+            const results = data.results;
+            let resultsHtml = '<h4 style="margin-top: 0; color: #1f2937;">Strategy Metrics</h4>';
+            for (const [strategy, metrics] of Object.entries(results)) {
+                resultsHtml += `
+                    <div style="margin-bottom: 12px; padding: 10px; background: white; border-radius: 6px; border-left: 4px solid #667eea;">
+                        <strong>${strategy}</strong><br>
+                        Energy: ${metrics.total_energy.toFixed(2)} kWh | 
+                        SLA: ${metrics.sla_violations} violations | 
+                        Fairness: ${metrics.fairness_score.toFixed(3)} | 
+                        Green: ${metrics.green_score.toFixed(3)}
+                    </div>
+                `;
+            }
+            detailsDiv.innerHTML = resultsHtml;
+            
+            // Display visualizations if available
+            if (data.visualizations) {
+                const vizs = data.visualizations;
+                if (vizs.energy_plot) displayVizualization('energy-plot-img', 'energy-plot-loading', vizs.energy_plot);
+                if (vizs.sla_plot) displayVizualization('sla-plot-img', 'sla-plot-loading', vizs.sla_plot);
+                if (vizs.fairness_plot) displayVizualization('fairness-plot-img', 'fairness-plot-loading', vizs.fairness_plot);
+                if (vizs.dashboard_plot) displayVizualization('dashboard-plot-img', 'dashboard-plot-loading', vizs.dashboard_plot);
+            }
+        }
+        
+        // Display individual visualization
+        function displayVizualization(imgId, loadingId, imagePath) {
+            const img = document.getElementById(imgId);
+            const loading = document.getElementById(loadingId);
+            
+            if (imagePath && imagePath !== null) {
+                img.src = '/' + imagePath + '?t=' + new Date().getTime();
+                img.style.display = 'block';
+                loading.style.display = 'none';
+            } else {
+                loading.textContent = 'Visualization not available';
+            }
+        }
+        
+        // Load nodes on page load
+        loadNodes();
+
+        window.URL.revokeObjectURL(url);
+        }
+
+        // Health check
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/health')
+                .then(r => r.json())
+                .then(d => updateStatus('Ready', 'System healthy. Click "Start Simulation"', 'ready'))
+                .catch(() => updateStatus('Error', 'Cannot connect to server', 'error'));
+        });
+    </script>
+</body>
+</html>
