@@ -12,7 +12,7 @@ Called by: User via browser/requests
 Calls: orchestration.FederatedLearningPipeline, experiments, metrics, visualization
 """
 
-from flask import Flask, render_template, jsonify, request, send_file
+from flask import Flask, render_template, jsonify, request, send_file, redirect, url_for, session
 import config
 from orchestration import FederatedLearningPipeline
 from experiments.scenario_manager import ScenarioManager
@@ -27,11 +27,97 @@ from simulation_data_generator import RealisticSimulationGenerator
 import os
 import io
 import json
+import csv
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Initialize Flask app
 app = Flask(__name__)
 app.config.from_object(config)
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'change-this-secret-key-in-production')
+
+# Authentication and role configuration
+USER_ACCOUNTS = {
+    'admin': {
+        'password_hash': generate_password_hash(os.getenv('ADMIN_PASSWORD', 'Admin@12345')),
+        'role': 'admin'
+    },
+    'mugdhi': {
+        'password_hash': generate_password_hash(os.getenv('MUGDHI_PASSWORD', 'Mugdhi@12345')),
+        'role': 'user'
+    },
+    'sanya': {
+        'password_hash': generate_password_hash(os.getenv('SANYA_PASSWORD', 'Sanya@12345')),
+        'role': 'user'
+    },
+    'evaluator': {
+        'password_hash': generate_password_hash(os.getenv('EVALUATOR_PASSWORD', 'Evaluator@12345')),
+        'role': 'user'
+    }
+}
+
+SESSION_LOG_FILE = os.path.join('logs', 'user_sessions_log.csv')
+
+
+def log_user_activity(event: str, details: str = '') -> None:
+    """Append user session and activity logs for auditability."""
+    os.makedirs('logs', exist_ok=True)
+    file_exists = os.path.exists(SESSION_LOG_FILE)
+    username = session.get('username', 'anonymous')
+    role = session.get('role', 'none')
+
+    with open(SESSION_LOG_FILE, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(['timestamp', 'username', 'role', 'event', 'path', 'method', 'ip', 'user_agent', 'details'])
+        writer.writerow([
+            datetime.utcnow().isoformat(),
+            username,
+            role,
+            event,
+            request.path,
+            request.method,
+            request.remote_addr,
+            request.headers.get('User-Agent', ''),
+            details
+        ])
+
+
+def is_admin() -> bool:
+    return session.get('role') == 'admin'
+
+
+@app.before_request
+def enforce_access_control():
+    """Global access control for login-gated and role-gated resources."""
+    public_paths = {'/login', '/logout', '/api/health'}
+    if request.path.startswith('/static/'):
+        return None
+    if request.path in public_paths:
+        return None
+
+    username = session.get('username')
+    if not username:
+        if request.path.startswith('/api/'):
+            return jsonify({'status': 'error', 'message': 'Authentication required'}), 401
+        return redirect(url_for('login'))
+
+    # Admin-only sensitive endpoints
+    admin_only = (
+        request.path == '/api/model/state' or
+        request.path == '/api/nodes/clear' or
+        request.path.startswith('/api/experiments/') or
+        request.path.startswith('/api/experiments/delete/') or
+        request.path == '/api/session-logs' or
+        (request.path.startswith('/api/nodes/') and request.method in ('PUT', 'DELETE'))
+    )
+    if admin_only and not is_admin():
+        log_user_activity('denied', 'admin-only endpoint')
+        return jsonify({'status': 'error', 'message': 'Admin access required'}), 403
+
+    # Activity trail for authenticated user actions
+    if request.path.startswith('/api/'):
+        log_user_activity('api_access')
 
 # Initialize global pipeline (created once at startup)
 _pipeline = None
@@ -61,7 +147,88 @@ def dashboard():
     Returns:
         Rendered dashboard_v3.html template (new professional interface)
     """
-    return render_template('dashboard_v3.html')
+    return render_template(
+        'dashboard_v3.html',
+        current_user=session.get('username', ''),
+        current_role=session.get('role', 'user')
+    )
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Session login for admin and team accounts."""
+    if request.method == 'GET':
+        return render_template('login.html')
+
+    data = request.get_json(silent=True) or request.form
+    username = (data.get('username') or '').strip().lower()
+    password = data.get('password') or ''
+
+    account = USER_ACCOUNTS.get(username)
+    if not account or not check_password_hash(account['password_hash'], password):
+        log_user_activity('login_failed', f'username={username}')
+        if request.is_json:
+            return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
+        return render_template('login.html', error='Invalid credentials'), 401
+
+    session['username'] = username
+    session['role'] = account['role']
+    session['login_at'] = datetime.utcnow().isoformat()
+    log_user_activity('login_success')
+
+    if request.is_json:
+        return jsonify({'status': 'success', 'username': username, 'role': account['role']}), 200
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/logout', methods=['GET', 'POST'])
+def logout():
+    username = session.get('username', 'anonymous')
+    role = session.get('role', 'none')
+    os.makedirs('logs', exist_ok=True)
+    file_exists = os.path.exists(SESSION_LOG_FILE)
+    with open(SESSION_LOG_FILE, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(['timestamp', 'username', 'role', 'event', 'path', 'method', 'ip', 'user_agent', 'details'])
+        writer.writerow([
+            datetime.utcnow().isoformat(),
+            username,
+            role,
+            'logout',
+            request.path,
+            request.method,
+            request.remote_addr,
+            request.headers.get('User-Agent', ''),
+            ''
+        ])
+    session.clear()
+    if request.is_json:
+        return jsonify({'status': 'success'}), 200
+    return redirect(url_for('login'))
+
+
+@app.route('/api/auth/me', methods=['GET'])
+def auth_me():
+    return jsonify({
+        'status': 'success',
+        'username': session.get('username'),
+        'role': session.get('role', 'user')
+    }), 200
+
+
+@app.route('/api/session-logs', methods=['GET'])
+def get_session_logs():
+    """Admin-only endpoint to review user session activity logs."""
+    if not os.path.exists(SESSION_LOG_FILE):
+        return jsonify({'status': 'success', 'data': []}), 200
+
+    rows = []
+    with open(SESSION_LOG_FILE, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            rows.append(row)
+    return jsonify({'status': 'success', 'data': rows[-500:]}), 200
 
 
 @app.route('/dashboard/v2')

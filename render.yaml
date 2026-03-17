@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: federated-cloud-dashboard
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: FLASK_DEBUG
+        value: "false"
+      - key: FLASK_SECRET_KEY
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: MUGDHI_PASSWORD
+        sync: false
+      - key: SANYA_PASSWORD
+        sync: false
+      - key: EVALUATOR_PASSWORD
+        sync: false

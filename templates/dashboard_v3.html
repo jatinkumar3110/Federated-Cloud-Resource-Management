@@ -823,7 +823,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-section="logs" onclick="switchSection('logs')">
+                    <a class="nav-link admin-only" data-section="logs" onclick="switchSection('logs')">
                         <i class="fas fa-file-csv"></i>
                         <span>Logs & Export</span>
                     </a>
@@ -846,17 +846,21 @@
                 <i class="fas fa-home"></i> Dashboard Overview
             </div>
             <div class="header-controls">
+                <span id="currentUserDisplay" style="color: var(--text-secondary); font-size: 0.9rem; margin-right: 8px;"></span>
                 <button class="btn btn-primary" onclick="runSimulation()" title="Quick interactive simulation (transient)">
                     <i class="fas fa-play"></i> Run Simulation
                 </button>
-                <button class="btn btn-info" onclick="executeExperiment()" title="Save experiment for comparison (persistent)">
+                <button class="btn btn-info admin-only" id="executeExperimentBtn" onclick="executeExperiment()" title="Save experiment for comparison (persistent)">
                     <i class="fas fa-flask"></i> Execute Experiment
                 </button>
                 <button class="btn btn-warning" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle light/dark background">
                     <i class="fas fa-sun"></i> Light Mode
                 </button>
-                <button class="btn btn-success" onclick="exportData()">
+                <button class="btn btn-success admin-only" onclick="exportData()">
                     <i class="fas fa-download"></i> Export
+                </button>
+                <button class="btn btn-danger" onclick="window.location.href='/logout'">
+                    <i class="fas fa-sign-out-alt"></i> Logout
                 </button>
             </div>
         </div>
@@ -1131,7 +1135,7 @@
                     <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="addNode()">
                         <i class="fas fa-plus"></i> Add Node
                     </button>
-                    <button class="btn btn-danger" style="width: 100%;" onclick="clearAllNodes()">
+                    <button class="btn btn-danger admin-only" id="clearNodesBtn" style="width: 100%;" onclick="clearAllNodes()">
                         <i class="fas fa-trash"></i> Clear All
                     </button>
                 </div>
@@ -1815,6 +1819,20 @@
         let currentSection = 'dashboard';
         let chartInstances = {};
         let currentTheme = 'dark';
+        let currentUserName = "{{ current_user|default('', true) }}";
+        let currentUserRole = "{{ current_role|default('user', true) }}";
+
+        function applyRolePermissions() {
+            const isAdminUser = currentUserRole === 'admin';
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.style.display = isAdminUser ? '' : 'none';
+            });
+            const userDisplay = document.getElementById('currentUserDisplay');
+            if (userDisplay) {
+                const roleLabel = isAdminUser ? 'Admin' : 'Team Member';
+                userDisplay.textContent = `${currentUserName} (${roleLabel})`;
+            }
+        }
 
         // ===== THEME + PLOTLY HELPERS =====
         function getThemeColors() {
@@ -2010,9 +2028,12 @@
                     <td>${node.energy_cost_factor.toFixed(1)}x</td>
                     <td>${node.sla_threshold}%</td>
                     <td>
-                        <button class="btn" onclick="deleteNode('${node.node_id}')" style="padding: 4px 12px; background-color: var(--error); color: white; font-size: 0.8rem;">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        ${currentUserRole === 'admin'
+                            ? `<button class="btn" onclick="deleteNode('${node.node_id}')" style="padding: 4px 12px; background-color: var(--error); color: white; font-size: 0.8rem;">
+                                <i class="fas fa-trash"></i>
+                               </button>`
+                            : `<span style="color: var(--text-secondary); font-size: 0.85rem;">View only</span>`
+                        }
                     </td>
                 </tr>
             `).join('');
@@ -3897,6 +3918,7 @@ Completion Time: ${new Date().toISOString()}
         // ===== INITIALIZATION =====
         document.addEventListener('DOMContentLoaded', function() {
             initTheme();
+            applyRolePermissions();
             loadNodes();
             loadSavedSimulations();
             
@@ -3909,7 +3931,9 @@ Completion Time: ${new Date().toISOString()}
                     }
                     if (e.key === 'e') {
                         e.preventDefault();
-                        exportToCSV();
+                        if (currentUserRole === 'admin') {
+                            exportToCSV();
+                        }
                     }
                     if (e.key === 'r') {
                         e.preventDefault();

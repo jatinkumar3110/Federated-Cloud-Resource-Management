@@ -14,9 +14,11 @@ import os
 # ============================================================================
 # FLASK CONFIGURATION
 # ============================================================================
-DEBUG = True
-HOST = '127.0.0.1'  # Localhost only
-PORT = 5000
+# Production-safe defaults are used unless explicitly overridden by environment
+# variables. For local development, set FLASK_DEBUG=true.
+DEBUG = os.getenv('FLASK_DEBUG', 'false').lower() in ('1', 'true', 'yes', 'on')
+HOST = os.getenv('HOST', '0.0.0.0')
+PORT = int(os.getenv('PORT', '5000'))
 
 # ============================================================================
 # FEDERATED LEARNING CONFIGURATION

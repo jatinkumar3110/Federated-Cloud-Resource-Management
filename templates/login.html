@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Federated Cloud Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e2e8f0;
+        }
+        .panel {
+            width: 100%;
+            max-width: 420px;
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+        }
+        h1 {
+            margin: 0 0 8px 0;
+            font-size: 1.4rem;
+            color: #38bdf8;
+        }
+        p {
+            margin: 0 0 18px 0;
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+        label {
+            display: block;
+            margin: 12px 0 6px;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            background: #0f172a;
+            color: #e2e8f0;
+            box-sizing: border-box;
+        }
+        button {
+            margin-top: 16px;
+            width: 100%;
+            padding: 11px 14px;
+            border: none;
+            border-radius: 8px;
+            background: #38bdf8;
+            color: #0f172a;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .error {
+            margin-top: 12px;
+            color: #fca5a5;
+            font-size: 0.9rem;
+        }
+        .note {
+            margin-top: 14px;
+            color: #94a3b8;
+            font-size: 0.82rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <h1>Federated Cloud Dashboard</h1>
+        <p>Sign in to continue.</p>
+        <form method="post" action="/login">
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" required>
+
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required>
+
+            <button type="submit">Sign In</button>
+        </form>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        <div class="note">Accounts: admin, mugdhi, sanya, evaluator</div>
+    </div>
+</body>
+</html>
