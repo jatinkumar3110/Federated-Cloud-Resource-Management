@@ -7,6 +7,8 @@ Responsibility: Common plotting utilities, styling, color schemes.
 
 from typing import Dict, List, Any, Tuple, Optional
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from datetime import datetime
