@@ -1,0 +1,39 @@
+Federated Cloud Dashboard - Latest Project Summary (March 2026)
+
+Status:
+- Project is live-ready and successfully deployed workflow prepared for Render.
+- Local and production runtime paths validated.
+
+Major Capabilities:
+1. Federated cloud simulation and strategy comparison.
+2. Realistic metrics generation:
+   - energy usage
+   - fairness score
+   - convergence
+   - communication overhead
+   - carbon footprint
+   - SLA violations
+3. Rich dashboard analytics with interactive Plotly charts.
+4. Transient simulation and persistent experiment workflows.
+5. Role-based login gate and session logging.
+
+Security and Access:
+- Accounts supported: admin, mugdhi, sanya, evaluator.
+- Admin has full/sensitive access.
+- Team users have restricted/basic access.
+- User activity logged in logs/user_sessions_log.csv.
+
+Deployment:
+- Render configured via render.yaml.
+- Gunicorn startup configured.
+- Python version pinned for compatibility.
+- Headless matplotlib backend configured.
+
+Documentation:
+- PROJECT.md is the canonical master technical document.
+- README.md is updated for GitHub overview (latest version).
+
+Next Recommended Steps:
+1. Set strong production secrets/password env vars.
+2. Enable session hardening and rate limiting.
+3. Move persistent experiment storage to a database.

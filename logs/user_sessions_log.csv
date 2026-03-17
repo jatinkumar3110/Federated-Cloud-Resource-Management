@@ -1,0 +1,13 @@
+timestamp,username,role,event,path,method,ip,user_agent,details
+2026-03-17T12:10:14.033282,mugdhi,user,login_success,/login,POST,127.0.0.1,Werkzeug/3.1.5,
+2026-03-17T12:10:14.037281,mugdhi,user,api_access,/api/auth/me,GET,127.0.0.1,Werkzeug/3.1.5,
+2026-03-17T12:10:14.041291,mugdhi,user,denied,/api/model/state,GET,127.0.0.1,Werkzeug/3.1.5,admin-only endpoint
+2026-03-17T12:10:39.125755,admin,admin,login_success,/login,POST,127.0.0.1,Werkzeug/3.1.5,
+2026-03-17T12:10:39.130756,admin,admin,api_access,/api/model/state,GET,127.0.0.1,Werkzeug/3.1.5,
+2026-03-17T12:10:39.820689,admin,admin,api_access,/api/session-logs,GET,127.0.0.1,Werkzeug/3.1.5,
+2026-03-17T12:11:20.214555,sanya,user,login_success,/login,POST,127.0.0.1,Werkzeug/3.1.5,
+2026-03-17T12:11:44.353436,evaluator,user,login_success,/login,POST,127.0.0.1,Werkzeug/3.1.5,
+2026-03-17T12:11:44.357475,evaluator,user,api_access,/api/simulations/run,POST,127.0.0.1,Werkzeug/3.1.5,
+2026-03-17T12:11:44.358641,evaluator,user,denied,/api/experiments/list,GET,127.0.0.1,Werkzeug/3.1.5,admin-only endpoint
+2026-03-17T12:11:44.531167,admin,admin,login_success,/login,POST,127.0.0.1,Werkzeug/3.1.5,
+2026-03-17T12:11:44.532527,admin,admin,api_access,/api/experiments/list,GET,127.0.0.1,Werkzeug/3.1.5,
