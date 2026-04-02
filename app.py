@@ -56,6 +56,13 @@ USER_ACCOUNTS = {
     }
 }
 
+DEMO_USERNAME = 'demo'
+DEMO_PASSWORD = 'demo'
+DEMO_LOGIN_ENABLED = (
+    os.getenv('ENABLE_DEMO_LOGIN', 'true').strip().lower() in ('1', 'true', 'yes', 'on') and
+    os.getenv('FLASK_ENV', 'development').strip().lower() != 'production'
+)
+
 SESSION_LOG_FILE = os.path.join('logs', 'user_sessions_log.csv')
 
 
@@ -163,6 +170,15 @@ def login():
     data = request.get_json(silent=True) or request.form
     username = (data.get('username') or '').strip().lower()
     password = data.get('password') or ''
+
+    if DEMO_LOGIN_ENABLED and username == DEMO_USERNAME and password == DEMO_PASSWORD:
+        session['username'] = DEMO_USERNAME
+        session['role'] = 'user'
+        session['login_at'] = datetime.utcnow().isoformat()
+        log_user_activity('login_success', 'demo_login')
+        if request.is_json:
+            return jsonify({'status': 'success', 'username': DEMO_USERNAME, 'role': 'user'}), 200
+        return redirect(url_for('dashboard'))
 
     account = USER_ACCOUNTS.get(username)
     if not account or not check_password_hash(account['password_hash'], password):

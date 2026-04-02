@@ -60,6 +60,11 @@
             font-weight: 700;
             cursor: pointer;
         }
+        .demo-btn {
+            margin-top: 10px;
+            background: #e2e8f0;
+            color: #0f172a;
+        }
         .error {
             margin-top: 12px;
             color: #fca5a5;
@@ -76,7 +81,7 @@
     <div class="panel">
         <h1>Federated Cloud Dashboard</h1>
         <p>Sign in to continue.</p>
-        <form method="post" action="/login">
+        <form id="login-form" method="post" action="/login">
             <label for="username">Username</label>
             <input id="username" name="username" type="text" required>
 
@@ -84,11 +89,25 @@
             <input id="password" name="password" type="password" required>
 
             <button type="submit">Sign In</button>
+            <button type="button" id="quick-demo-login" class="demo-btn">Quick Demo Login</button>
         </form>
+        <div class="note">Use demo login for quick access (NO ID/Password needed)</div>
         {% if error %}
         <div class="error">{{ error }}</div>
         {% endif %}
-        <div class="note">Accounts: admin, mugdhi, sanya, evaluator</div>
+        <div class="note">Accounts: admin, mugdhi, sanya, evaluator, demo</div>
     </div>
+    <script>
+        const loginForm = document.getElementById('login-form');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const quickDemoButton = document.getElementById('quick-demo-login');
+
+        quickDemoButton.addEventListener('click', function () {
+            usernameInput.value = 'demo';
+            passwordInput.value = 'demo';
+            loginForm.submit();
+        });
+    </script>
 </body>
 </html>

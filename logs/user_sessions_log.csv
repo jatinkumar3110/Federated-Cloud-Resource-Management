@@ -11,3 +11,8 @@ timestamp,username,role,event,path,method,ip,user_agent,details
 2026-03-17T12:11:44.358641,evaluator,user,denied,/api/experiments/list,GET,127.0.0.1,Werkzeug/3.1.5,admin-only endpoint
 2026-03-17T12:11:44.531167,admin,admin,login_success,/login,POST,127.0.0.1,Werkzeug/3.1.5,
 2026-03-17T12:11:44.532527,admin,admin,api_access,/api/experiments/list,GET,127.0.0.1,Werkzeug/3.1.5,
+2026-04-02T15:50:26.625292,anonymous,none,login_failed,/login,POST,127.0.0.1,Werkzeug/3.1.5,username=invalid
+2026-04-02T15:50:26.680914,demo,user,login_success,/login,POST,127.0.0.1,Werkzeug/3.1.5,demo_login
+2026-04-02T15:52:28.396571,admin,admin,login_success,/login,POST,127.0.0.1,Werkzeug/3.1.5,
+2026-04-02T15:52:28.403087,anonymous,none,login_failed,/login,POST,127.0.0.1,Werkzeug/3.1.5,username=invalid
+2026-04-02T15:52:28.405095,demo,user,login_success,/login,POST,127.0.0.1,Werkzeug/3.1.5,demo_login
